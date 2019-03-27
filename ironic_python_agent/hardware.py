@@ -18,6 +18,7 @@ import functools
 import json
 from multiprocessing.pool import ThreadPool
 import os
+import re
 import shlex
 import time
 
@@ -759,11 +760,16 @@ class GenericHardwareManager(HardwareManager):
             for sys_child in sys_dict['children']:
                 if sys_child['id'] == 'core':
                     for core_child in sys_child['children']:
-                        if core_child['id'] == 'memory':
-                            if core_child.get('size'):
-                                value = "%(size)s %(units)s" % core_child
-                                physical += int(UNIT_CONVERTER(value).to(
-                                    'MB').magnitude)
+                        if re.match(r'(^memory$)|(^memory:[0-9]{1,2}$)',
+                                    core_child['id']):
+                            if 'children' in core_child:
+                                for memory_child in core_child['children']:
+                                    if memory_child.get('size'):
+                                        value = ("%(size)s %(units)s" %
+                                                 memory_child)
+                                        physical += int(UNIT_CONVERTER(
+                                            value).to('MB').magnitude)
+
             if not physical:
                 LOG.warning('Did not find any physical RAM')
 
